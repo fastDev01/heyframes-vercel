@@ -109,7 +109,7 @@ export default function Home() {
         {render.status === "rendering" && (
           <p className={styles.hint}>
             Spinning up a Vercel Sandbox (Chrome + FFmpeg). This usually takes
-            30–90 seconds for a 20-second composition.
+            about 2 minutes for the bundled ~11-second composition.
           </p>
         )}
         {render.status === "done" && (
