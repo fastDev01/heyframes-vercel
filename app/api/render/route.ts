@@ -9,13 +9,17 @@ export const maxDuration = 300;
 export async function POST(req: Request) {
   try {
     let files: Array<{ rel: string; content: Buffer }>;
+    let format: "mp4" | "webm" = "mp4";
 
     const contentType = req.headers.get("content-type") ?? "";
     if (contentType.includes("application/json")) {
       const body = await req.json().catch(() => ({})) as {
         html?: string;
         files?: Record<string, string>; // filename → base64
+        format?: "mp4" | "webm";
       };
+
+      if (body.format === "webm") format = "webm";
 
       if (body.html) {
         files = [
@@ -32,11 +36,11 @@ export async function POST(req: Request) {
       files = await collectFiles(PREVIEW_COMPOSITION_DIR);
     }
 
-    const { mp4 } = await renderInSandbox(files);
+    const { mp4 } = await renderInSandbox(files, format);
 
-    const blob = await put(`renders/render-${Date.now()}.mp4`, mp4, {
+    const blob = await put(`renders/render-${Date.now()}.${format}`, mp4, {
       access: "public",
-      contentType: "video/mp4",
+      contentType: format === "webm" ? "video/webm" : "video/mp4",
       addRandomSuffix: true,
       allowOverwrite: true,
     });

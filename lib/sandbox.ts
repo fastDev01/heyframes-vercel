@@ -121,9 +121,13 @@ async function restoreOrCreate(): Promise<Sandbox> {
   return sandbox;
 }
 
-export async function renderInSandbox(compositionFiles: ReadonlyArray<{ rel: string; content: Buffer }>): Promise<RenderResult> {
+export async function renderInSandbox(
+  compositionFiles: ReadonlyArray<{ rel: string; content: Buffer }>,
+  format: "mp4" | "webm" = "mp4",
+): Promise<RenderResult> {
   const t0 = Date.now();
   const sandbox = await restoreOrCreate();
+  const outFile = `out.${format}`;
 
   try {
     await sandbox.writeFiles(
@@ -137,13 +141,14 @@ export async function renderInSandbox(compositionFiles: ReadonlyArray<{ rel: str
       cmd: "npx",
       args: [
         "--no-install", "hyperframes", "render", "composition",
-        "-o", "out.mp4",
+        "-o", outFile,
+        "--format", format,
         "--workers", "auto",
       ],
     });
 
-    const mp4 = await sandbox.readFileToBuffer({ path: "out.mp4" });
-    if (!mp4) throw new Error("render produced no out.mp4");
+    const mp4 = await sandbox.readFileToBuffer({ path: outFile });
+    if (!mp4) throw new Error(`render produced no ${outFile}`);
     return { mp4, durationMs: Date.now() - t0 };
   } finally {
     await sandbox.stop().catch(() => {});
