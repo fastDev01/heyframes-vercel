@@ -6,12 +6,35 @@ import { PREVIEW_COMPOSITION_DIR } from "@/lib/preview";
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
-    const files = await collectFiles(PREVIEW_COMPOSITION_DIR);
+    let files: Array<{ rel: string; content: Buffer }>;
+
+    const contentType = req.headers.get("content-type") ?? "";
+    if (contentType.includes("application/json")) {
+      const body = await req.json().catch(() => ({})) as {
+        html?: string;
+        files?: Record<string, string>; // filename → base64
+      };
+
+      if (body.html) {
+        files = [
+          { rel: "index.html", content: Buffer.from(body.html) },
+          ...Object.entries(body.files ?? {}).map(([rel, b64]) => ({
+            rel,
+            content: Buffer.from(b64, "base64"),
+          })),
+        ];
+      } else {
+        files = await collectFiles(PREVIEW_COMPOSITION_DIR);
+      }
+    } else {
+      files = await collectFiles(PREVIEW_COMPOSITION_DIR);
+    }
+
     const { mp4 } = await renderInSandbox(files);
 
-    const blob = await put("renders/render.mp4", mp4, {
+    const blob = await put(`renders/render-${Date.now()}.mp4`, mp4, {
       access: "public",
       contentType: "video/mp4",
       addRandomSuffix: true,
